@@ -5,7 +5,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.naming.Context;
 import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
 import javax.naming.directory.*;
+import java.util.ArrayList;
 import java.util.Properties;
 
 public class LdapUtils {
@@ -17,7 +19,15 @@ public class LdapUtils {
     private int accountControl;
     private String department, title, groups;
     Logger logger = LoggerFactory.getLogger(LdapUtils.class);
+    private String groupSuffix = "OU=СКФУ,OU=ФГАОУ ВО СКФУ,OU=СКФУ,DC=ncfu,DC=net";
 
+    public String getGroupSuffix() {
+        return groupSuffix;
+    }
+
+    public void setGroupSuffix(String groupSuffix) {
+        this.groupSuffix = groupSuffix;
+    }
 
     private enum UAC_BIT {
         ACCOUNT_DISABLED(0x02),
@@ -147,5 +157,67 @@ public class LdapUtils {
             System.out.println(e.toString());
         }
         return ACCOUNT_UNKNOWN;
+    }
+
+    public ArrayList<People> find(String fio) {
+        if (fio == null || fio.isEmpty() || dirContext == null)
+            return null;
+        ArrayList<People> peopleArrayList = new ArrayList<>();
+        String searchbase = "cn=" + fio + "*";// + "*," + base;
+        SearchControls sc = new SearchControls();
+        String[] returnattrs = {"sAMAccountName",
+                "userAccountControl",
+                "sn", "givenName", "middleName",
+                "title", "department",
+                "memberOf"};
+        sc.setReturningAttributes(returnattrs);
+        sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
+
+        try {
+
+            NamingEnumeration searchresult = dirContext.search(base,
+                    "(& (objectClass=user)(" + searchbase + "))", sc);
+            while (searchresult.hasMore()) {
+                SearchResult sr = (SearchResult) searchresult.next();
+                Attributes attr = sr.getAttributes();
+
+                People people = new People();
+
+                int accountControl = Integer.parseInt(attr.get("userAccountControl").get().toString());
+                String account = attr.get("sAMAccountName").get().toString();
+                String lastName = attr.get("sn") != null ? attr.get("sn").get().toString(): "";
+                String firstName = attr.get("givenName") != null ? attr.get("givenName").get().toString(): "";
+                String middleName = attr.get("middleName") != null ? attr.get("middleName").get().toString(): "";
+                String title = attr.get("title") != null ? attr.get("title").get().toString(): "";
+                String department = attr.get("department") != null ? attr.get("department").get().toString(): "";
+
+                StringBuilder rootDepartment = null;
+
+                if (attr.get("memberOf") != null) {
+                    NamingEnumeration<?> memberOf = attr.get("memberOf").getAll();
+                    while (memberOf.hasMore()) {
+                        String group = (String) memberOf.next();
+                        int start;
+                        if ((start = group.indexOf(department)) >= 0) {
+                            StringBuilder str = new StringBuilder(group.substring(start, group.indexOf(groupSuffix)-1));
+                            rootDepartment = new StringBuilder(str.substring(str.lastIndexOf("OU=")+3));
+                        }
+                    }
+                }
+
+                people.setFio(lastName + firstName + middleName);
+                people.setPosition(title);
+                if (rootDepartment != null) department = rootDepartment.toString();
+                people.setAccount(account);
+                people.setADState(isAccountActive(accountControl) ? ACCOUNT_ENABLED: ACCOUNT_DISABLED);
+                people.setDepartment(department);
+                peopleArrayList.add(people);
+
+            }
+
+        } catch (NamingException e) {
+            logger.info("[find] not found fio: {}", fio, e);
+        }
+        return peopleArrayList;
     }
 }
