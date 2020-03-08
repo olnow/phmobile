@@ -1,5 +1,6 @@
 package olnow.phmobile;
 
+import org.hibernate.NonUniqueResultException;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.slf4j.Logger;
@@ -62,6 +63,9 @@ public class PeopleDAO {
             People ph = query.getSingleResult();
             if (ph != null) return ph;
             else return null;
+        }
+        catch (NonUniqueResultException | NoResultException e) {
+            return null;
         }
         catch (Exception e) {
             System.out.println(this.getClass().getName() + ": " +
