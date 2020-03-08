@@ -9,6 +9,7 @@ import javax.naming.NamingException;
 import javax.naming.directory.*;
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 
 public class LdapUtils {
     private DirContext dirContext;
@@ -19,7 +20,7 @@ public class LdapUtils {
     private int accountControl;
     private String department, title, groups;
     Logger logger = LoggerFactory.getLogger(LdapUtils.class);
-    private String groupSuffix = "OU=СКФУ,OU=ФГАОУ ВО СКФУ,OU=СКФУ,DC=ncfu,DC=net";
+    private String groupSuffix = "";
 
     public String getGroupSuffix() {
         return groupSuffix;
@@ -205,7 +206,12 @@ public class LdapUtils {
                     }
                 }
 
-                people.setFio(lastName + firstName + middleName);
+                people.setFio(new StringBuilder(lastName)
+                        .append(" ")
+                        .append(firstName)
+                        .append(" ")
+                        .append(middleName)
+                        .toString());
                 people.setPosition(title);
                 if (rootDepartment != null) department = rootDepartment.toString();
                 people.setAccount(account);
@@ -217,6 +223,8 @@ public class LdapUtils {
 
         } catch (NamingException e) {
             logger.info("[find] not found fio: {}", fio, e);
+        } catch (Exception e) {
+            logger.error("[find] exception: {}", fio, e);
         }
         return peopleArrayList;
     }
