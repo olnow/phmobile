@@ -222,7 +222,7 @@ public class LdapUtils {
             }
 
         } catch (NamingException e) {
-            logger.info("[find] not found fio: {}", fio, e);
+            logger.info("[find] not found fio: {}", fio);
         } catch (Exception e) {
             logger.error("[find] exception: {}", fio, e);
         }
