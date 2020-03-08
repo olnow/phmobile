@@ -16,4 +16,15 @@ public class PeopleServices {
     public void clearPeopleFilter() { this.people.clearPeopleFilter(); }
     public ArrayList<String> getDepartments() { return this.people.getDepartments(); }
     public ArrayList<String> getPositions() { return this.people.getPositions(); }
+
+    public ArrayList<People> findPeopleAndSetID(ArrayList<People> people) {
+        if (people == null) return null;
+        people.forEach(human -> {
+            if (human != null) {
+                People findPeople = findPeople(human.getFio());
+                if (findPeople != null) human.setIdpeople(findPeople.getIdpeople());
+            }
+        });
+        return people;
+    }
 }
