@@ -87,6 +87,10 @@ public class People {
         return idpeople;
     }
 
+    public void setIdpeople(int idpeople) {
+        this.idpeople = idpeople;
+    }
+
     public String getFirst() {
         return first;
     }
